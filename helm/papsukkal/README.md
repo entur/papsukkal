@@ -21,10 +21,20 @@ helm/papsukkal/
     values-kub-ent-prd.yaml
   templates/
     cronjob.yaml                   # the sync CronJob (owns timeZone + backoffLimit)
+    configmap.yaml                 # per-env application.properties, mounted into the job
     external-secret.yaml           # generic ExternalSecrets from .Values.secrets (e.g. Slack)
     external-secret-tiamat-oauth.yaml  # Tiamat OAuth client creds → Spring env names
     _helpers.tpl
 ```
+
+## Configuration
+
+Non-secret, per-environment config (`config.*` in the env values) is rendered into a ConfigMap
+(`application.properties`), mounted at `/etc/application-config`, and overlaid on the baked
+`application.yml` via `-Dspring.config.additional-location` (set in `JDK_JAVA_OPTIONS`). Structural
+defaults stay in the jar's `application.yml`; secrets arrive as env vars from the External Secrets
+(`envFrom`). This also sets `logging.structured.format.console=gcp` so deployed logs are
+Google-Cloud-Logging structured JSON (local/test stay human-readable).
 
 ## Secrets
 

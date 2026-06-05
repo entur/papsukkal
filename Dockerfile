@@ -5,8 +5,8 @@
 # it does not build, so no Maven credentials are needed at image-build time.
 FROM eclipse-temurin:25-jre
 
-# Container-aware heap sizing.
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
+# JVM options (heap, file encoding, spring.config.additional-location) are set by the Helm chart
+# via JDK_JAVA_OPTIONS at deploy time.
 
 # Run as a non-root user (uid/gid 1000 matches the Helm chart's runAsUser/fsGroup).
 RUN groupadd --gid 1000 papsukkal && useradd --uid 1000 --gid 1000 --home-dir /app --no-create-home papsukkal
