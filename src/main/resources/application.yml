@@ -17,6 +17,9 @@ papsukkal:
     project-id: ${GCS_PROJECT_ID:}
     bucket: ${GCS_STATE_BUCKET:}
     object-name: sync-state/last-sync.json
+  slack:
+    # Incoming-webhook URL (secret). Blank disables notifications (best-effort).
+    webhook-url: ${SLACK_WEBHOOK_URL:}
   validation:
     # Floors tuned to the known-good magnitude of the production export (≈485 zones / 29 groups).
     # NOT `> 0`: Tiamat self-guards the empty delivery; the small-but-nonzero delivery is the danger.
