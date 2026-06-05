@@ -11,36 +11,27 @@ spring:
         registration:
           tiamat:
             authorization-grant-type: client_credentials
-            # client-id / client-secret are supplied at runtime via the env vars
-            # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_TIAMAT_CLIENT_ID / _CLIENT_SECRET,
-            # synced from the SecretStore by the papsukkal-tiamat-oauth ExternalSecret.
-        provider:
-          tiamat:
-            token-uri: ${TIAMAT_OAUTH_TOKEN_URI:}
+            # client-id / client-secret come from the SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_TIAMAT_*
+            # env vars (papsukkal-tiamat-oauth ExternalSecret); provider.tiamat.token-uri comes from the
+            # mounted ConfigMap (see helm/papsukkal).
 
+# Structural defaults only. Per-environment values (GCS project/bucket, Tiamat URL + OAuth
+# token-uri/audience, logging format) are supplied at deploy time via the mounted
+# application.properties ConfigMap; secrets (SLACK_URL, OAuth client id/secret) arrive as env vars.
 papsukkal:
   entur:
     url: https://api.entur.io/distance/netex/fare-zones
-    # ET-Client-Name header (<company>-<application>); override per deployment.
+    # ET-Client-Name header default; overridden per deployment.
     client-name: entur-papsukkal
     # organisation-id:   # optional filter; omit for the full ("all") export
   gcs:
-    # project-id and bucket are required at runtime — supply via env/secret.
-    project-id: ${GCS_PROJECT_ID:}
-    bucket: ${GCS_STATE_BUCKET:}
     object-name: sync-state/last-sync.json
   slack:
     # Incoming-webhook URL from the SLACK_URL secret. Blank disables notifications (best-effort).
     webhook-url: ${SLACK_URL:}
   tiamat:
-    # Synchronous NeTEx import endpoint, e.g. https://<host>/services/stop_places/netex
-    url: ${TIAMAT_NETEX_IMPORT_URL:}
-    # Blank => Tiamat's configured default; or set MERGE. Prune-on-missing is governed by
-    # Tiamat's externalVersioning, not by this param.
-    import-type: ${TIAMAT_IMPORT_TYPE:}
     oauth:
       client-registration-id: tiamat
-      audience: ${TIAMAT_OAUTH_AUDIENCE:}
     retry:
       max-retries: 2        # 3 attempts total
       delay: 5s
