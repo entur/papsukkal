@@ -13,5 +13,10 @@ build/
 .classpath
 .project
 
+# Terraform
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+
 # OS
 .DS_Store
