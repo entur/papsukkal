@@ -136,6 +136,35 @@ class FareZoneSyncServiceTest {
     }
 
     @Test
+    void change_check_fetch_failure_notifies_and_fails() {
+        when(enturClient.currentExportPath()).thenThrow(new RuntimeException("Entur 503"));
+
+        SyncOutcome outcome = service.run(options(false, false));
+
+        assertThat(outcome).isEqualTo(SyncOutcome.FAILED);
+        verify(slack).failure(any(SlackNotifier.Failure.class));
+        verify(enturClient, never()).downloadExport();
+        verify(stateStore, never()).write(any());
+        verifyNoInteractions(validator, publisher);
+        verify(slack, never()).started(any());
+    }
+
+    @Test
+    void download_failure_notifies_and_fails() {
+        when(enturClient.currentExportPath()).thenReturn(PATH);
+        when(stateStore.read()).thenReturn(null);
+        when(enturClient.downloadExport()).thenThrow(new RuntimeException("Entur read timeout"));
+
+        SyncOutcome outcome = service.run(options(false, false));
+
+        assertThat(outcome).isEqualTo(SyncOutcome.FAILED);
+        verify(slack).failure(any(SlackNotifier.Failure.class));
+        verify(stateStore, never()).write(any());
+        verifyNoInteractions(validator, publisher);
+        verify(slack, never()).started(any());
+    }
+
+    @Test
     void publish_failure_does_not_advance_state() {
         when(enturClient.currentExportPath()).thenReturn(PATH);
         when(stateStore.read()).thenReturn(null);

@@ -47,7 +47,15 @@ public class FareZoneSyncService {
     public SyncOutcome run(SyncOptions options) {
         long startNanos = System.nanoTime();
 
-        String currentPath = enturClient.currentExportPath();
+        String currentPath;
+        try {
+            currentPath = enturClient.currentExportPath();
+        } catch (RuntimeException e) {
+            log.error("Entur fetch failed during change check; state not advanced", e);
+            return fail(options.trigger(), "(unknown — change check failed)",
+                    "Entur fetch failed: " + e.getMessage());
+        }
+
         SyncState baseline = stateStore.read();
 
         boolean changed = options.force()
@@ -58,7 +66,14 @@ public class FareZoneSyncService {
             return SyncOutcome.SKIPPED;
         }
 
-        byte[] body = enturClient.downloadExport();
+        byte[] body;
+        try {
+            body = enturClient.downloadExport();
+        } catch (RuntimeException e) {
+            log.error("Entur download failed; state not advanced", e);
+            return fail(options.trigger(), currentPath,
+                    "Entur download failed: " + e.getMessage());
+        }
         ValidationResult validation = validator.validate(new ByteArrayInputStream(body), baseline);
 
         if (!validation.passed()) {
@@ -68,8 +83,7 @@ public class FareZoneSyncService {
                         + "versioning this authorizes Tiamat to delete zones missing from the delivery. Reasons: {}", reason);
             } else {
                 log.error("Validation gateway rejected dataset; state not advanced. Reasons: {}", reason);
-                slack.failure(new SlackNotifier.Failure(options.trigger(), currentPath, reason, false));
-                return SyncOutcome.FAILED;
+                return fail(options.trigger(), currentPath, reason);
             }
         }
 
@@ -101,5 +115,11 @@ public class FareZoneSyncService {
         log.info("Published export {} ({} zones, {} groups) in {} ms",
                 currentPath, newState.fareZoneCount(), newState.groupCount(), durationMs);
         return SyncOutcome.PUBLISHED;
+    }
+
+    /** Emits a ❌ notification (state never advanced here) and returns {@link SyncOutcome#FAILED}. */
+    private SyncOutcome fail(SyncTrigger trigger, String attemptedPath, String reason) {
+        slack.failure(new SlackNotifier.Failure(trigger, attemptedPath, reason, false));
+        return SyncOutcome.FAILED;
     }
 }
