@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.entur.ror</groupId>
+        <artifactId>superpom</artifactId>
+        <version>6.4.0</version>
+    </parent>
+
+    <groupId>no.entur</groupId>
+    <artifactId>papsukkal</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>papsukkal</name>
+    <description>Fetches fare zone NeTEx data from Entur and delivers it to Tiamat</description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>4.0.0</spring-boot.version>
+        <entur-storage-gcs.version>5.14</entur-storage-gcs.version>
+    </properties>
+
+    <!-- superpom is the org parent (not spring-boot-starter-parent), so Spring Boot's
+         dependency management is imported here as a BOM. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- spring-boot-starter-web brings RestClient + Jackson; the app runs with
+             web-application-type=none (see application.yml) so no server is started. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Publish retry uses Spring Framework 7's native @Retryable (org.springframework.resilience),
+             enabled via @EnableResilientMethods — wired in when TiamatPublisher is implemented. -->
+
+        <!-- State storage — Entur's GCS helper (backs GcsSyncStateStore for sync-state/last-sync.json). -->
+        <dependency>
+            <groupId>org.entur.ror.helpers</groupId>
+            <artifactId>storage-gcp-gcs</artifactId>
+            <version>${entur-storage-gcs.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Version pinned explicitly since the plugin's managed version came from
+                 spring-boot-starter-parent, which is no longer the parent. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

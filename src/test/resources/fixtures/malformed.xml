@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PublicationDelivery xmlns="http://www.netex.org.uk/netex" version="1.0">
+    <dataObjects>
+        <FareFrame id="ENT:FareFrame:1" version="1">
+            <fareZones>
+                <FareZone id="ENT:FareZone:1" version="1"><Name>Zone 1</Name>
+            </fareZones>
+        </FareFrame>

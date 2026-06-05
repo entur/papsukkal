@@ -74,16 +74,17 @@ There is **no scheduler component and no web layer** — Kubernetes triggers the
 
 | Concern | Choice |
 |---|---|
-| Language | Kotlin |
-| Framework | Spring Boot 3.x (run-once; `web-application-type=none`) |
+| Language | Java 25 |
+| Build | Maven (`spring-boot-starter-parent`) |
+| Framework | Spring Boot 4.x (run-once; `web-application-type=none`) |
 | HTTP client | `RestClient` (Spring Boot built-in) |
 | Scheduler | Kubernetes `CronJob` (daily, off-peak) |
-| State storage | GCP Cloud Storage (single text file) |
+| State storage | GCP Cloud Storage (single JSON file) |
 | Deployment | GKE `CronJob` (run-once Job per tick) |
 | Auth to GCP | Workload Identity |
 | Auth to Tiamat | OAuth2 client-credentials (JWT bearer) |
 | Notifications | Slack incoming webhook |
-| Retry | Spring Retry (transient-only, exponential backoff) |
+| Retry | Spring Framework native `@Retryable` (`org.springframework.resilience`), transient-only, exponential backoff |
 
 No Apache Camel — the sync flow is a straight line and does not warrant route DSL overhead.
 

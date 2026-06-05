@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PublicationDelivery xmlns="http://www.netex.org.uk/netex" version="1.0">
+    <dataObjects>
+        <CompositeFrame id="ENT:CompositeFrame:1" version="1">
+            <frames>
+                <FareFrame id="ENT:FareFrame:1" version="1">
+                    <fareZones>
+                        <FareZone id="ENT:FareZone:1" version="1"><Name>Zone 1</Name></FareZone>
+                        <FareZone id="ENT:FareZone:2" version="1"><Name>Zone 2</Name></FareZone>
+                        <FareZone id="ENT:FareZone:3" version="1"><Name>Zone 3</Name></FareZone>
+                        <FareZone id="ENT:FareZone:4" version="1"><Name>Zone 4</Name></FareZone>
+                        <FareZone id="ENT:FareZone:5" version="1"><Name>Zone 5</Name></FareZone>
+                        <FareZone id="ENT:FareZone:6" version="1"><Name>Zone 6</Name></FareZone>
+                        <FareZone id="ENT:FareZone:7" version="1"><Name>Zone 7</Name></FareZone>
+                        <FareZone id="ENT:FareZone:8" version="1"><Name>Zone 8</Name></FareZone>
+                        <FareZone id="ENT:FareZone:9" version="1"><Name>Zone 9</Name></FareZone>
+                        <FareZone id="ENT:FareZone:10" version="1"><Name>Zone 10</Name></FareZone>
+                    </fareZones>
+                </FareFrame>
+                <SiteFrame id="ENT:SiteFrame:1" version="1">
+                    <groupsOfTariffZones>
+                        <GroupOfTariffZones id="ENT:GroupOfTariffZones:1" version="1">
+                            <members>
+                                <TariffZoneRef ref="ENT:FareZone:1"/>
+                                <TariffZoneRef ref="ENT:FareZone:2"/>
+                                <TariffZoneRef ref="ENT:FareZone:3"/>
+                            </members>
+                        </GroupOfTariffZones>
+                        <GroupOfTariffZones id="ENT:GroupOfTariffZones:2" version="1">
+                            <members>
+                                <TariffZoneRef ref="ENT:FareZone:4"/>
+                                <TariffZoneRef ref="ENT:FareZone:5"/>
+                            </members>
+                        </GroupOfTariffZones>
+                    </groupsOfTariffZones>
+                </SiteFrame>
+            </frames>
+        </CompositeFrame>
+    </dataObjects>
+</PublicationDelivery>

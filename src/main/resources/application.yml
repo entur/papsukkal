@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: papsukkal
+  main:
+    # Run-once batch job — no web server.
+    web-application-type: none
+    banner-mode: "off"
+
+papsukkal:
+  validation:
+    # Floors tuned to the known-good magnitude of the production export (≈485 zones / 29 groups).
+    # NOT `> 0`: Tiamat self-guards the empty delivery; the small-but-nonzero delivery is the danger.
+    fare-zone:
+      min-count: 400
+    group:
+      min-count: 25
+    # Fail-closed on any shrink beyond this percentage vs the last-good baseline.
+    max-shrink-pct: 10
+
+logging:
+  level:
+    no.entur.papsukkal: INFO
