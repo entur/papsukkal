@@ -63,6 +63,13 @@
             <version>${entur-helpers.version}</version>
         </dependency>
 
+        <!-- OAuth2 client-credentials token for Tiamat (backs TiamatNetexPublisher's bearer auth). -->
+        <dependency>
+            <groupId>org.entur.ror.helpers</groupId>
+            <artifactId>oauth2</artifactId>
+            <version>${entur-helpers.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

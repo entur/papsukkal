@@ -5,6 +5,17 @@ spring:
     # Run-once batch job — no web server.
     web-application-type: none
     banner-mode: "off"
+  security:
+    oauth2:
+      client:
+        registration:
+          tiamat:
+            authorization-grant-type: client_credentials
+            client-id: ${TIAMAT_OAUTH_CLIENT_ID:}
+            client-secret: ${TIAMAT_OAUTH_CLIENT_SECRET:}
+        provider:
+          tiamat:
+            token-uri: ${TIAMAT_OAUTH_TOKEN_URI:}
 
 papsukkal:
   entur:
@@ -20,6 +31,21 @@ papsukkal:
   slack:
     # Incoming-webhook URL (secret). Blank disables notifications (best-effort).
     webhook-url: ${SLACK_WEBHOOK_URL:}
+  tiamat:
+    # Synchronous NeTEx import endpoint, e.g. https://<host>/services/stop_places/netex
+    url: ${TIAMAT_NETEX_IMPORT_URL:}
+    # Blank => Tiamat's configured default; or set MERGE. Prune-on-missing is governed by
+    # Tiamat's externalVersioning, not by this param.
+    import-type: ${TIAMAT_IMPORT_TYPE:}
+    oauth:
+      client-registration-id: tiamat
+      audience: ${TIAMAT_OAUTH_AUDIENCE:}
+    retry:
+      max-retries: 2        # 3 attempts total
+      delay: 5s
+      multiplier: 3.0
+      max-delay: 45s
+      jitter: 1s
   validation:
     # Floors tuned to the known-good magnitude of the production export (≈485 zones / 29 groups).
     # NOT `> 0`: Tiamat self-guards the empty delivery; the small-but-nonzero delivery is the danger.
