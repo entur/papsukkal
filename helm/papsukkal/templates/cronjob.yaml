@@ -1,0 +1,89 @@
+{{- $releaseName := include "name" . -}}
+{{- $cron := .Values.cron -}}
+{{- $config := .Values.config -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $releaseName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "labels" . | trim | nindent 4 }}
+  annotations:
+    {{- include "annotations" . | trim | nindent 4 }}
+spec:
+  {{- $unused := required "cron.schedule is required" $cron.schedule }}
+  schedule: {{ $cron.schedule | quote }}
+  # Not exposed by the common chart — defined locally so the schedule is in Europe/Oslo.
+  timeZone: {{ $cron.timeZone | quote }}
+  concurrencyPolicy: {{ $cron.concurrencyPolicy | default "Forbid" }}
+  successfulJobsHistoryLimit: {{ $cron.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ $cron.failedJobsHistoryLimit | default 3 }}
+  suspend: {{ $cron.suspend | default false }}
+  jobTemplate:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        {{- include "labels" . | indent 8 }}
+    spec:
+      # Not exposed by the common chart — 0 means no in-cluster re-run; the next daily tick is the
+      # outer retry (within-run transient retries are handled by Spring Retry).
+      backoffLimit: {{ $cron.backoffLimit | default 0 }}
+      activeDeadlineSeconds: {{ $cron.activeDeadlineSeconds | default 1800 }}
+      template:
+        metadata:
+          annotations:
+            {{- include "annotations" . | indent 12 }}
+          labels:
+            {{- include "labels" . | indent 12 }}
+        spec:
+          # The "application" service account is created by the infrastructure provisioner
+          # (Workload Identity bound to GCS); the chart does not manage it.
+          serviceAccountName: application
+          restartPolicy: {{ $cron.restartPolicy | default "Never" }}
+          dnsPolicy: ClusterFirst
+          terminationGracePeriodSeconds: 30
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: {{ .Values.uid }}
+            runAsGroup: {{ .Values.uid }}
+            fsGroup: {{ .Values.uid }}
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: {{ .Values.app }}
+              image: {{ .Values.image.identifier }}
+              imagePullPolicy: {{ .Values.image.imagePullPolicy | default "Always" }}
+              env:
+                - name: TZ
+                  value: Europe/Oslo
+                - name: PAPSUKKAL_ENTUR_CLIENT_NAME
+                  value: {{ $config.enturClientName | quote }}
+                - name: GCS_PROJECT_ID
+                  value: {{ $config.gcsProjectId | quote }}
+                - name: GCS_STATE_BUCKET
+                  value: {{ $config.gcsStateBucket | quote }}
+                - name: TIAMAT_NETEX_IMPORT_URL
+                  value: {{ $config.tiamatImportUrl | quote }}
+                - name: TIAMAT_IMPORT_TYPE
+                  value: {{ $config.tiamatImportType | quote }}
+                - name: TIAMAT_OAUTH_TOKEN_URI
+                  value: {{ $config.oauthTokenUri | quote }}
+                - name: TIAMAT_OAUTH_AUDIENCE
+                  value: {{ $config.oauthAudience | quote }}
+              envFrom:
+                # SLACK_WEBHOOK_URL + the SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_TIAMAT_* creds,
+                # synced from the namespace SecretStore by the ExternalSecrets (see external-secret*.yaml).
+                {{- range $secretName, $keys := .Values.secrets }}
+                - secretRef:
+                    name: {{ $secretName }}
+                {{- end }}
+                - secretRef:
+                    name: {{ .Values.tiamatOauth.secretName }}
+              resources:
+                requests:
+                  cpu: {{ .Values.resources.cpu | quote }}
+                  memory: {{ .Values.resources.memory | quote }}
+                limits:
+                  memory: {{ .Values.resources.memory | quote }}
+              {{- include "securitycontext" . | nindent 14 }}

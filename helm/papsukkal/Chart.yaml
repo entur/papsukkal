@@ -1,0 +1,13 @@
+apiVersion: v2
+name: papsukkal
+description: Papsukkal — Entur fare-zone NeTEx sync to Tiamat (run-once CronJob)
+version: 0.1.0
+appVersion: "0.0.1"
+keywords:
+  - papsukkal
+sources:
+  - https://github.com/entur/papsukkal
+maintainers:
+  - name: team-ror
+    email: team.rutedata@entur.org
+engine: gotpl

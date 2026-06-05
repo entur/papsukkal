@@ -1,0 +1,9 @@
+env: dev
+
+config:
+  gcsProjectId: ent-papsukkal-dev
+  gcsStateBucket: ror-papsukkal-dev
+  tiamatImportUrl: http://tiamat.dev.entur.internal:80/services/stop_places/netex
+  tiamatImportType: ""
+  oauthTokenUri: https://internal.dev.entur.org/oauth/token
+  oauthAudience: https://api.dev.entur.io

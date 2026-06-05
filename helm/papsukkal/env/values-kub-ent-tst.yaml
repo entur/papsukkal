@@ -1,0 +1,9 @@
+env: tst
+
+config:
+  gcsProjectId: ent-papsukkal-tst
+  gcsStateBucket: ror-papsukkal-tst
+  tiamatImportUrl: http://tiamat.tst.entur.internal:80/services/stop_places/netex
+  tiamatImportType: ""
+  oauthTokenUri: https://internal.staging.entur.org/oauth/token
+  oauthAudience: https://api.staging.entur.io

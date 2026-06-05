@@ -11,8 +11,9 @@ spring:
         registration:
           tiamat:
             authorization-grant-type: client_credentials
-            client-id: ${TIAMAT_OAUTH_CLIENT_ID:}
-            client-secret: ${TIAMAT_OAUTH_CLIENT_SECRET:}
+            # client-id / client-secret are supplied at runtime via the env vars
+            # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_TIAMAT_CLIENT_ID / _CLIENT_SECRET,
+            # synced from the SecretStore by the papsukkal-tiamat-oauth ExternalSecret.
         provider:
           tiamat:
             token-uri: ${TIAMAT_OAUTH_TOKEN_URI:}
@@ -29,8 +30,8 @@ papsukkal:
     bucket: ${GCS_STATE_BUCKET:}
     object-name: sync-state/last-sync.json
   slack:
-    # Incoming-webhook URL (secret). Blank disables notifications (best-effort).
-    webhook-url: ${SLACK_WEBHOOK_URL:}
+    # Incoming-webhook URL from the SLACK_URL secret. Blank disables notifications (best-effort).
+    webhook-url: ${SLACK_URL:}
   tiamat:
     # Synchronous NeTEx import endpoint, e.g. https://<host>/services/stop_places/netex
     url: ${TIAMAT_NETEX_IMPORT_URL:}

@@ -1,0 +1,55 @@
+# Papsukkal — default values. Environment-specific overrides live in env/values-kub-ent-*.yaml.
+
+app: papsukkal
+appId: papsukkal
+team: ror
+# Overridden per environment (sbx | dev | tst | prd).
+env: dev
+releaseName: ""
+labels: {}
+
+# Runs as this uid/gid (matches the non-root user baked into the Dockerfile).
+uid: 1000
+
+image:
+  # Injected by Harness CD at deploy time.
+  identifier: <+artifacts.primary.image>
+  imagePullPolicy: Always
+
+resources:
+  cpu: "250m"
+  memory: "512Mi"  # limit always equals request
+
+cron:
+  schedule: "0 3 * * *"
+  timeZone: "Europe/Oslo"
+  concurrencyPolicy: Forbid
+  backoffLimit: 0
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  activeDeadlineSeconds: 1800
+  restartPolicy: Never
+
+# Non-secret, per-environment configuration (set in env/values-kub-ent-*.yaml).
+config:
+  enturClientName: entur-papsukkal
+  gcsProjectId: ""
+  gcsStateBucket: ""
+  tiamatImportUrl: ""
+  # Blank => Tiamat's configured default; or set MERGE.
+  tiamatImportType: ""
+  oauthTokenUri: ""
+  oauthAudience: ""
+
+# Credentials synced from the namespace SecretStore (Google Secret Manager) via External Secrets.
+# Generic entries (secretKey == remote key) — consumed via envFrom.
+secrets:
+  papsukkal-slack:
+    - SLACK_URL
+
+# Tiamat OAuth2 client-credentials (the shared internal auth0 client): remote GSM keys mapped to the
+# Spring-canonical env names.
+tiamatOauth:
+  secretName: papsukkal-tiamat-oauth
+  clientIdRemoteKey: MNG_AUTH0_INT_CLIENT_ID
+  clientSecretRemoteKey: MNG_AUTH0_INT_CLIENT_SECRET

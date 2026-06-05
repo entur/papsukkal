@@ -1,0 +1,9 @@
+env: prd
+
+config:
+  gcsProjectId: ent-papsukkal-prd
+  gcsStateBucket: ror-papsukkal-production
+  tiamatImportUrl: http://tiamat.prd.entur.internal:80/services/stop_places/netex
+  tiamatImportType: ""
+  oauthTokenUri: https://internal.entur.org/oauth/token
+  oauthAudience: https://api.entur.io
