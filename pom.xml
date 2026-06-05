@@ -78,6 +78,9 @@
     </dependencies>
 
     <build>
+        <!-- Stable artifact name so the Dockerfile copies target/papsukkal.jar (the superpom also
+             attaches a -sources.jar, which a version-glob would otherwise match). -->
+        <finalName>papsukkal</finalName>
         <plugins>
             <!-- Version pinned explicitly since the plugin's managed version came from
                  spring-boot-starter-parent, which is no longer the parent. -->

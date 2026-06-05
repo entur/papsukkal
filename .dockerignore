@@ -1,0 +1,3 @@
+# Keep the build context tiny: only the pre-built fat jar is needed.
+*
+!target/papsukkal.jar
