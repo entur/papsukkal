@@ -9,11 +9,11 @@ FROM eclipse-temurin:25-jre@sha256:04262e8782d6b034ee5d7c1c5d4e8938fcf2063a76b4b
 # JVM options (heap, file encoding, spring.config.additional-location) are set by the Helm chart
 # via JDK_JAVA_OPTIONS at deploy time.
 
-# Run as a non-root user (uid/gid 1000 matches the Helm chart's runAsUser/fsGroup).
-RUN groupadd --gid 1000 papsukkal && useradd --uid 1000 --gid 1000 --home-dir /app --no-create-home papsukkal
 WORKDIR /app
+COPY target/papsukkal.jar /app/papsukkal.jar
 
-COPY --chown=papsukkal:papsukkal target/papsukkal.jar /app/papsukkal.jar
-
-USER papsukkal
+# The eclipse-temurin (Ubuntu 24.04) base already ships a non-root uid/gid 1000 user, so we run as
+# it rather than creating another at 1000 (which collides — groupadd exits 4 on a duplicate GID).
+# Matches the Helm chart's runAsUser/runAsGroup/fsGroup = 1000.
+USER 1000:1000
 ENTRYPOINT ["java", "-jar", "/app/papsukkal.jar"]
