@@ -20,3 +20,6 @@ terraform/.terraform/
 
 # OS
 .DS_Store
+
+# Claude Code local runtime artifacts
+.claude/scheduled_tasks.lock

@@ -11,6 +11,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.stereotype.Component;
 
+import java.util.function.UnaryOperator;
+
 /**
  * Run-once entrypoint: invokes {@link FareZoneSyncService} once on startup and records the exit
  * code the JVM should terminate with (0 = published or correctly skipped, non-zero = failed).
@@ -24,10 +26,17 @@ public class SyncRunner implements ApplicationRunner, ExitCodeGenerator {
     private static final Logger log = LoggerFactory.getLogger(SyncRunner.class);
 
     private final FareZoneSyncService syncService;
+    private final UnaryOperator<String> env;
     private int exitCode = 0;
 
     public SyncRunner(FareZoneSyncService syncService) {
+        this(syncService, System::getenv);
+    }
+
+    /** Test seam: inject the environment lookup instead of reading {@link System#getenv}. */
+    SyncRunner(FareZoneSyncService syncService, UnaryOperator<String> env) {
         this.syncService = syncService;
+        this.env = env;
     }
 
     @Override
@@ -50,12 +59,12 @@ public class SyncRunner implements ApplicationRunner, ExitCodeGenerator {
         return exitCode;
     }
 
-    private static boolean envFlag(String name) {
-        return Boolean.parseBoolean(System.getenv(name));
+    private boolean envFlag(String name) {
+        return Boolean.parseBoolean(env.apply(name));
     }
 
-    private static SyncTrigger triggerFromEnv() {
-        return "manual".equalsIgnoreCase(System.getenv("TRIGGER"))
+    private SyncTrigger triggerFromEnv() {
+        return "manual".equalsIgnoreCase(env.apply("TRIGGER"))
                 ? SyncTrigger.MANUAL
                 : SyncTrigger.SCHEDULED;
     }
