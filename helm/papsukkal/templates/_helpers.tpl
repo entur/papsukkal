@@ -32,6 +32,7 @@ meta.helm.sh/release-namespace: {{ empty .Release.Namespace| ternary .Release.Na
 securityContext:
   allowPrivilegeEscalation: false
   runAsNonRoot: true
+  readOnlyRootFilesystem: true
   capabilities:
     drop: ["ALL"]
   seccompProfile:

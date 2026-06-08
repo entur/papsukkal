@@ -82,7 +82,13 @@ spec:
                 - name: application-config
                   mountPath: /etc/application-config
                   readOnly: true
+                # readOnlyRootFilesystem=true → give the JVM a writable scratch dir (java.io.tmpdir).
+                - name: tmp
+                  mountPath: /tmp
           volumes:
             - name: application-config
               configMap:
                 name: {{ $releaseName }}-config
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi
