@@ -62,7 +62,20 @@ public class FareZoneSyncService {
                 || baseline == null
                 || !baseline.exportPath().equals(currentPath);
         if (!changed) {
-            log.info("No change detected ({}); skipping publish", currentPath);
+            // Emit the current (unchanged) counts every run so Cloud Logging has a daily heartbeat
+            // of the live fare-zone / group magnitude even when nothing is published.
+            var skipLog = log.atInfo()
+                    .setMessage("No change detected; skipping publish")
+                    .addKeyValue("outcome", "SKIPPED")
+                    .addKeyValue("trigger", options.trigger())
+                    .addKeyValue("exportPath", currentPath);
+            if (baseline != null) {
+                skipLog = skipLog
+                        .addKeyValue("fareZoneCount", baseline.fareZoneCount())
+                        .addKeyValue("groupCount", baseline.groupCount())
+                        .addKeyValue("memberCount", baseline.memberCount());
+            }
+            skipLog.log();
             return SyncOutcome.SKIPPED;
         }
 
@@ -112,8 +125,18 @@ public class FareZoneSyncService {
 
         long durationMs = (System.nanoTime() - startNanos) / 1_000_000;
         slack.success(new SlackNotifier.Success(options.trigger(), currentPath, durationMs, 1));
-        log.info("Published export {} ({} zones, {} groups) in {} ms",
-                currentPath, newState.fareZoneCount(), newState.groupCount(), durationMs);
+        // Counts are emitted as structured fields (jsonPayload.fareZoneCount, …) so they are queryable
+        // in Cloud Logging and can back a log-based metric — see CLAUDE.md › Observability.
+        log.atInfo()
+                .setMessage("Published fare-zone export to Tiamat")
+                .addKeyValue("outcome", "PUBLISHED")
+                .addKeyValue("trigger", options.trigger())
+                .addKeyValue("exportPath", currentPath)
+                .addKeyValue("fareZoneCount", newState.fareZoneCount())
+                .addKeyValue("groupCount", newState.groupCount())
+                .addKeyValue("memberCount", newState.memberCount())
+                .addKeyValue("durationMs", durationMs)
+                .log();
         return SyncOutcome.PUBLISHED;
     }
 

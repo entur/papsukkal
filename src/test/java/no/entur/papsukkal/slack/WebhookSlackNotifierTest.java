@@ -34,7 +34,7 @@ class WebhookSlackNotifierTest {
 
         enabledNotifier().started(new Started(
                 SyncTrigger.SCHEDULED, "/v29/farezones.xml", "/v28/farezones.xml",
-                new DatasetCounts(485, 29, 639, List.of())));
+                new DatasetCounts(485, 29, 639, List.of(), 0)));
 
         ArgumentCaptor<String> msg = ArgumentCaptor.forClass(String.class);
         verify(slack).publish(msg.capture());
@@ -51,7 +51,7 @@ class WebhookSlackNotifierTest {
 
         enabledNotifier().started(new Started(
                 SyncTrigger.SCHEDULED, "/v1/farezones.xml", null,
-                new DatasetCounts(485, 29, 639, List.of())));
+                new DatasetCounts(485, 29, 639, List.of(), 0)));
 
         ArgumentCaptor<String> msg = ArgumentCaptor.forClass(String.class);
         verify(slack).publish(msg.capture());
@@ -109,7 +109,7 @@ class WebhookSlackNotifierTest {
         WebhookSlackNotifier disabled = new WebhookSlackNotifier(slack, new SlackProperties(""));
 
         disabled.started(new Started(SyncTrigger.SCHEDULED, "/v1/f.xml", null,
-                new DatasetCounts(485, 29, 639, List.of())));
+                new DatasetCounts(485, 29, 639, List.of(), 0)));
 
         verifyNoInteractions(slack);
     }

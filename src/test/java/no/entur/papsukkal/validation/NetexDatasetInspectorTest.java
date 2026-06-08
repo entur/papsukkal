@@ -30,6 +30,15 @@ class NetexDatasetInspectorTest {
         assertThat(counts.groupCount()).isEqualTo(2);
         assertThat(counts.memberCount()).isEqualTo(5);
         assertThat(counts.unresolvedRefs()).isEmpty();
+        assertThat(counts.stopPlaceCount()).isZero();
+    }
+
+    @Test
+    void counts_stop_places_so_the_gateway_can_reject_foreign_entities() throws Exception {
+        DatasetCounts counts = inspector.inspect(fixture("farezones-with-stopplace.xml"));
+
+        assertThat(counts.stopPlaceCount()).isEqualTo(1);
+        assertThat(counts.fareZoneCount()).isEqualTo(5);
     }
 
     @Test

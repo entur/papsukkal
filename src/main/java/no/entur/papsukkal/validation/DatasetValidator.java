@@ -52,7 +52,7 @@ public class DatasetValidator {
         } catch (XMLStreamException e) {
             log.warn("Validation failed: dataset is not well-formed XML", e);
             return new ValidationResult(
-                    new DatasetCounts(0, 0, 0, List.of()),
+                    new DatasetCounts(0, 0, 0, List.of(), 0),
                     false,
                     List.of("NeTEx body failed to parse: " + e.getMessage()));
         }
@@ -73,6 +73,13 @@ public class DatasetValidator {
             failures.add(counts.unresolvedRefs().size()
                     + " group member ref(s) do not resolve to a FareZone in this delivery (e.g. "
                     + sample + ")");
+        }
+        // A fare-zone delivery must contain ONLY fare-zone data. A StopPlace here would be imported
+        // by the shared /services/stop_places/netex endpoint and is outside Papsukkal's remit — reject
+        // it (defence-in-depth alongside Tiamat scoping the OAuth client to FareZone/GroupOfTariffZones).
+        if (counts.stopPlaceCount() > 0) {
+            failures.add("Delivery contains " + counts.stopPlaceCount()
+                    + " StopPlace element(s) — a fare-zone export must not include stop places");
         }
 
         // Tier 2 — drift vs last-good baseline

@@ -90,6 +90,17 @@ class DatasetValidatorTest {
     }
 
     @Test
+    void rejects_a_delivery_containing_a_stop_place() {
+        // Structurally fine (zones/groups/refs all OK) but carries a StopPlace — must be rejected so
+        // the shared stop-place import endpoint never edits a stop place on Papsukkal's behalf.
+        ValidationResult result = lenientValidator().validate(fixture("farezones-with-stopplace.xml"), null);
+
+        assertThat(result.passed()).isFalse();
+        assertThat(result.failures()).anyMatch(f -> f.contains("must not include stop places"));
+        assertThat(result.counts().stopPlaceCount()).isEqualTo(1);
+    }
+
+    @Test
     void treats_malformed_xml_as_a_failure_without_throwing() {
         ValidationResult result = lenientValidator().validate(fixture("malformed.xml"), null);
 

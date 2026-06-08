@@ -8,17 +8,23 @@ Papsukkal is a lightweight Spring Boot **run-once batch job** that acts as a syn
 
 ## Open Items / Prerequisites
 
-External dependencies and decisions that must be resolved before Papsukkal can run in production. These are ownership/provisioning items, not design gaps.
+External dependencies and decisions that must be resolved before Papsukkal can run in production. These are ownership/provisioning items, not design gaps. The chart, secrets and Terraform are wired in this repo (the `[x]` items below); the remaining `[ ]` items need external confirmation or action by their owners.
+
+### Still pending
 
 - [ ] **Tiamat `GroupOfTariffZones` fix deployed** — the default import endpoint must import both `FareFrame/fareZones` and `SiteFrame/groupsOfTariffZones` in one pass. Verified end-to-end on a local Tiamat; **must be merged and deployed to Papsukkal's target Tiamat environment** before go-live. (See *Target System — Tiamat*.)
-- [ ] **OAuth2 client for Tiamat** — provision a machine-to-machine client-credentials client whose privileges permit importing fare zones; supply its credentials to Papsukkal as a secret. Does not exist yet. (See *Auth to Tiamat*.)
-- [ ] **Confirm `importType`** with the Tiamat owners — `MERGE` (or Tiamat's configured default) is assumed for a full fare-zone republish. Note the prune-on-missing behaviour is governed by `externalVersioning`, *not* by `importType` (tracked separately above); this item is only about which mode Tiamat expects and confirming re-import of an unchanged delivery is idempotent. (See *Query parameters* / *Idempotency*.)
-- [ ] **Tiamat host URL** for the target environment.
+- [ ] **Confirm the OAuth2 client holds the right Tiamat role** — credentials are *wired* (the shared internal auth0 client; GSM keys `MNG_AUTH0_INT_CLIENT_ID` / `_SECRET`, synced by the `papsukkal-tiamat-oauth` ExternalSecret into `SPRING_…_TIAMAT_CLIENT_ID` / `_SECRET`). Confirm with the Tiamat owners that the client carries an `editStops` role assignment scoped to `EntityType: [FareZone, GroupOfTariffZones]` (**not** `*` — least-privilege; no `deleteStops`) for the fare-zone-owning org. (See *Auth to Tiamat*.)
+- [ ] **Confirm Tiamat `externalVersioning` config** — verify the target Tiamat has `fareZone.externalVersioning=true` / `groupOfTariffZones.externalVersioning=true`. This makes imports full-replace-with-prune, which is *why* the validation gateway is a hard prerequisite. (See *Full replace under external versioning* / *Validation Gateway*.)
+- [ ] **Confirm `importType`** with the Tiamat owners — `MERGE` or Tiamat's configured default (the env config leaves it blank = default). Prune-on-missing is governed by `externalVersioning`, *not* this param; this item is only about which mode Tiamat expects and confirming an unchanged re-import is idempotent. (See *Query parameters* / *Idempotency*.)
 - [ ] **Confirm in-cluster transport security to Tiamat** — the import endpoint is `http://…entur.internal:80` (matching kakka/kingu); verify the `papsukkal` namespace is mesh-encrypted (mTLS `STRICT`). If not, switch `config.tiamatImportUrl` to `https://`. (See *Transport security*.)
-- [ ] **Slack incoming webhook** — create webhook + channel; supply URL as a secret (`papsukkal.slack.webhook-url`). (See *Notifications — Slack*.)
-- [ ] **GCS state bucket** — provisioned by `terraform/` (bucket `ror-papsukkal-{dev,tst,production}`). GCP projects: `ent-papsukkal-{dev,tst,prd}`; K8s namespace `papsukkal`. Apply Terraform per env. Bucket **access** for the `application` Workload Identity SA (`storage.objects.get` + `.create`) is granted by the infrastructure provisioner, **not** Terraform. (See *State Storage*.)
-- [ ] **Confirm Tiamat external-versioning config** — verify the target Tiamat has `fareZone.externalVersioning=true` / `groupOfTariffZones.externalVersioning=true`. This determines that imports are full-replace-with-prune, which is *why* the validation gateway is a hard prerequisite. (See *Full replace under external versioning* / *Validation Gateway*.)
-- [ ] **Tune validation thresholds** — set `papsukkal.validation.*` floors and `max-shrink-pct` to the known-good magnitude of the production export (≈485 zones / 29 groups today). A `> 0` floor is unsafe — the small-but-nonzero delivery is the dangerous case. (See *Validation Gateway*.)
+- [ ] **Apply Terraform per environment** — the state bucket (`ror-papsukkal-{dev,tst,production}`, projects `ent-papsukkal-{dev,tst,prd}`) is defined in `terraform/` but must be `terraform apply`-ed per env. Bucket **access** for the `application` Workload Identity SA (`storage.objects.get` + `.create`) is granted by the infrastructure provisioner, **not** Terraform. (See *State Storage*.)
+
+### Wired / resolved in this repo
+
+- [x] **Tiamat host URL** — set per env to `http://tiamat.<env>.entur.internal:80/services/stop_places/netex` in `helm/papsukkal/env/values-kub-ent-*.yaml` (matches kakka/kingu).
+- [x] **Slack webhook** — GSM key `SLACK_URL` synced by the `papsukkal-slack` ExternalSecret; the app reads `${SLACK_URL}`. (Confirm it targets the intended channel.)
+- [x] **Validation thresholds** — floors set to 400 zones / 25 groups and `max-shrink-pct: 10` (vs ≈485 / 29 today); confirm against the actual target export magnitude before go-live. (See *Validation Gateway*.)
+- [x] **K8s namespace** `papsukkal` and the `application` Workload Identity service account (chart references it; provisioned by infrastructure).
 
 ---
 
@@ -165,6 +171,7 @@ Counts are extracted with a **streaming StAX reader** (`XMLStreamReader`) over t
 - `FareZone` count ≥ a meaningful **absolute floor** (e.g. ≥ 400) — *not* `> 0`; that gap is already covered by Tiamat, and the small-nonzero case is the dangerous one
 - `GroupOfTariffZones` count ≥ floor (e.g. ≥ 25)
 - **Every group `TariffZoneRef` resolves to a `FareZone` defined in the delivery** — a partial export is exactly how dangling group members arise, and pre-checking locally yields a clearer error than a Tiamat reject
+- **No foreign entities** — the delivery must contain *only* fare-zone data; a `StopPlace` (count > 0) is rejected. `POST /services/stop_places/netex` is the **general** NeTEx import, so a stop place in the body would otherwise be imported/edited too. This is a client-side defence-in-depth complement to scoping the Tiamat OAuth client to `EntityType: [FareZone, GroupOfTariffZones]` (see *Auth to Tiamat*).
 
 **Tier 2 — count drift vs last-good baseline (the "significantly lower" check):**
 - Fail if `fareZoneCount < prev * (1 − threshold)` — **percentage drop**, not absolute delta, so it scales. Strict and **fail-closed** (e.g. > 5–10% shrink), because under external versioning every missing zone is real data loss.
@@ -320,9 +327,21 @@ This is the intended steady-state behaviour for a full republish — Entur's exp
 Tiamat is an OAuth2 resource server validating JWT bearer tokens (`spring.security.oauth2.resourceserver.jwt.issuer-uri`), and checks user authorization on import (toggled by Tiamat's `authorization.enabled`). So Papsukkal needs to:
 
 - obtain a token via **OAuth2 client-credentials** from Entur's auth provider (a machine-to-machine client), and
-- hold a client whose privileges permit editing/importing fare zones.
+- hold a role assignment authorizing edits to the fare-zone entity types.
 
-This is a real dependency that does not yet exist — a client must be provisioned, and its credentials supplied to Papsukkal (env/secret). Note this is **separate** from the GCP Workload Identity used for state storage and is unrelated to the Entur source API's `ET-Client-Name` header.
+#### Required role (least-privilege)
+
+Tiamat authorizes every imported entity through `verifyCanEditEntities` → `ROLE_EDIT_STOPS` (`"editStops"`), matching the role's `EntityType` classifier against each entity's class name (`ReflectionAuthorizationService` + `TiamatEntityResolver`). The client's JWT must carry an Entur role assignment of the form:
+
+```json
+{ "r": "editStops", "o": "<fare-zone-owning-org>", "e": { "EntityType": ["FareZone", "GroupOfTariffZones"] } }
+```
+
+- **Scope `EntityType` to `FareZone` + `GroupOfTariffZones` — not `*`.** `POST /services/stop_places/netex` is the *general* NeTEx import, so a `*` grant would let this client edit any entity present in a delivery (e.g. a `StopPlace`). Scoping to the two fare-zone types means a delivery carrying a stop place is **rejected (403)** rather than imported. (Papsukkal also rejects such deliveries client-side — see *Validation Gateway*.)
+- **No `deleteStops` needed** even though external versioning prunes: the prune (`deleteAllExcept`) authorizes via `verifyCanEditEntities` (= `editStops`), not delete.
+- Enforced only when Tiamat runs with `authorization.enabled=true`.
+
+The credentials are already wired (the shared internal auth0 client; GSM keys `MNG_AUTH0_INT_CLIENT_ID` / `_SECRET` synced by the `papsukkal-tiamat-oauth` ExternalSecret). **What remains is confirming this client holds the `editStops` role scoped as above.** Note this is **separate** from the GCP Workload Identity used for state storage and is unrelated to the Entur source API's `ET-Client-Name` header.
 
 ### Transport security (the `http://` Tiamat endpoint)
 
@@ -377,6 +396,21 @@ A `SlackNotifier` posts to a Slack incoming webhook (URL supplied via secret, e.
 ### Failure-notification noise
 
 With a daily cadence and `backoffLimit: 0`, a sustained Entur or Tiamat outage fires ❌ at most **once per day** — generally acceptable, so no extra dedup is needed up front. (If the cadence is later raised, revisit: alert only on the **first failure after a success**, or **rate-limit** ❌.) Keep 🔄 / ✅ unconditional since real changes are rare.
+
+---
+
+## Observability — counts via structured logs
+
+The fare-zone and group counts are surfaced through **structured logs**, not a Prometheus metric. Prometheus' pull/scrape model needs a continuously-available target, which a run-once CronJob isn't (the pod exits in seconds, and series go stale within ~5 min of it disappearing); a Pushgateway isn't available in the target environment. Rather than make Papsukkal long-running or add a state-reading exporter just for this, the counts ride the logs that are already emitted.
+
+`FareZoneSyncService` logs them as **structured key/value fields** (via the SLF4J fluent API, `log.atInfo().addKeyValue(...)`), which the GCP structured-logging format (`logging.structured.format.console=gcp`) renders into the JSON payload:
+
+- On **publish**: `outcome=PUBLISHED`, `trigger`, `exportPath`, `fareZoneCount`, `groupCount`, `memberCount`, `durationMs`.
+- On **skip** (no change): the same counts from the last-good baseline (`outcome=SKIPPED`) — a daily heartbeat of the live magnitude even when nothing is published.
+
+So in Cloud Logging the counts are queryable as `jsonPayload.fareZoneCount` / `jsonPayload.groupCount` (not by parsing message text), and a **log-based metric** can be defined on them later if a Prometheus-style timeseries is wanted — without changing the run-once design. (Job success/failure itself is also visible via `kube_job_status_*` from kube-state-metrics.)
+
+> Revisit if a true scrapeable timeseries becomes a hard requirement — the options are a long-lived metrics exporter that reads `sync-state/last-sync.json`, or making Papsukkal a long-running Deployment with an internal scheduler.
 
 ---
 

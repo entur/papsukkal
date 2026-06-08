@@ -42,6 +42,7 @@ public class NetexDatasetInspector {
         Set<String> fareZoneIds = new HashSet<>();
         List<String> memberRefs = new ArrayList<>();
         int groupCount = 0;
+        int stopPlaceCount = 0;
 
         XMLStreamReader reader = factory.createXMLStreamReader(body);
         try {
@@ -63,6 +64,8 @@ public class NetexDatasetInspector {
                             memberRefs.add(ref);
                         }
                     }
+                    // A fare-zone export must not carry stop places; count them so the gateway can reject.
+                    case "StopPlace" -> stopPlaceCount++;
                     default -> {
                         // not a counted element
                     }
@@ -76,6 +79,6 @@ public class NetexDatasetInspector {
                 .filter(ref -> !fareZoneIds.contains(ref))
                 .toList();
 
-        return new DatasetCounts(fareZoneIds.size(), groupCount, memberRefs.size(), unresolved);
+        return new DatasetCounts(fareZoneIds.size(), groupCount, memberRefs.size(), unresolved, stopPlaceCount);
     }
 }

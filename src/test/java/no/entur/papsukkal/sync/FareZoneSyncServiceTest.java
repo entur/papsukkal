@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class FareZoneSyncServiceTest {
 
     private static final String PATH = "/all/v29/all-farezones.xml";
-    private static final DatasetCounts COUNTS = new DatasetCounts(485, 29, 639, List.of());
+    private static final DatasetCounts COUNTS = new DatasetCounts(485, 29, 639, List.of(), 0);
 
     private final FareZoneApiClient enturClient = mock(FareZoneApiClient.class);
     private final DatasetValidator validator = mock(DatasetValidator.class);
