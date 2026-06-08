@@ -14,6 +14,7 @@ External dependencies and decisions that must be resolved before Papsukkal can r
 - [ ] **OAuth2 client for Tiamat** — provision a machine-to-machine client-credentials client whose privileges permit importing fare zones; supply its credentials to Papsukkal as a secret. Does not exist yet. (See *Auth to Tiamat*.)
 - [ ] **Confirm `importType`** with the Tiamat owners — `MERGE` (or Tiamat's configured default) is assumed for a full fare-zone republish. Note the prune-on-missing behaviour is governed by `externalVersioning`, *not* by `importType` (tracked separately above); this item is only about which mode Tiamat expects and confirming re-import of an unchanged delivery is idempotent. (See *Query parameters* / *Idempotency*.)
 - [ ] **Tiamat host URL** for the target environment.
+- [ ] **Confirm in-cluster transport security to Tiamat** — the import endpoint is `http://…entur.internal:80` (matching kakka/kingu); verify the `papsukkal` namespace is mesh-encrypted (mTLS `STRICT`). If not, switch `config.tiamatImportUrl` to `https://`. (See *Transport security*.)
 - [ ] **Slack incoming webhook** — create webhook + channel; supply URL as a secret (`papsukkal.slack.webhook-url`). (See *Notifications — Slack*.)
 - [ ] **GCS state bucket** — provisioned by `terraform/` (bucket `ror-papsukkal-{dev,tst,production}` + `roles/storage.objectAdmin` for the `application` SA). GCP projects: `ent-papsukkal-{dev,tst,prd}`; K8s namespace `papsukkal`. Apply Terraform per env; confirm the `service_account` in `terraform/env/*.tfvars` matches the Workload-Identity GCP SA. (See *State Storage*.)
 - [ ] **Confirm Tiamat external-versioning config** — verify the target Tiamat has `fareZone.externalVersioning=true` / `groupOfTariffZones.externalVersioning=true`. This determines that imports are full-replace-with-prune, which is *why* the validation gateway is a hard prerequisite. (See *Full replace under external versioning* / *Validation Gateway*.)
@@ -322,6 +323,19 @@ Tiamat is an OAuth2 resource server validating JWT bearer tokens (`spring.securi
 - hold a client whose privileges permit editing/importing fare zones.
 
 This is a real dependency that does not yet exist — a client must be provisioned, and its credentials supplied to Papsukkal (env/secret). Note this is **separate** from the GCP Workload Identity used for state storage and is unrelated to the Entur source API's `ET-Client-Name` header.
+
+### Transport security (the `http://` Tiamat endpoint)
+
+The import endpoint is configured as **plaintext HTTP** — `http://tiamat.<env>.entur.internal:80/services/stop_places/netex` — in every environment. At the application layer this means the OAuth2 bearer token and the NeTEx body cross the pod→service hop unencrypted; `RestClient` does **not** implicitly upgrade to TLS.
+
+This is intentional and matches the platform convention: sibling services on the same cluster (e.g. **kakka**, **kingu**) use the identical `http://…entur.internal:80` form for Tiamat and tiamat-exporter, and **no app chart configures TLS/mTLS** — transport encryption for in-cluster traffic is owned by the **service mesh / platform networking layer**, not the app. (The token itself is still minted over **HTTPS** — `oauthTokenUri` is `https://…`.)
+
+> **Confirm once with the platform team** that the `papsukkal` namespace is in the mesh with mTLS enforced (e.g. Istio `PeerAuthentication` mode `STRICT`):
+> ```bash
+> kubectl get peerauthentication -n papsukkal -o yaml      # expect mtls.mode: STRICT (or a mesh-wide default)
+> kubectl get pods -n papsukkal -o jsonpath='{..metadata.labels.security\.istio\.io/tlsMode}'  # 'istio' = mTLS
+> ```
+> If the namespace is **not** mesh-encrypted, switch `config.tiamatImportUrl` to `https://` in `helm/papsukkal/env/values-kub-ent-*.yaml` (terminate TLS at Tiamat) — otherwise the Tiamat write token traverses the network in cleartext.
 
 ### Idempotency
 

@@ -46,6 +46,14 @@ and consumed via `envFrom`:
   `MNG_AUTH0_INT_CLIENT_ID` / `MNG_AUTH0_INT_CLIENT_SECRET`, mapped to
   `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_TIAMAT_CLIENT_ID` / `_CLIENT_SECRET`.
 
+## Transport security
+
+`config.tiamatImportUrl` is plaintext `http://tiamat.<env>.entur.internal:80` (the same convention
+as kakka/kingu). The bearer token + NeTEx body rely on the **service mesh** for in-cluster
+encryption — no TLS is configured in this chart. Confirm the `papsukkal` namespace enforces mTLS
+(`kubectl get peerauthentication -n papsukkal`); if it does not, change `tiamatImportUrl` to
+`https://`. See CLAUDE.md › Transport security.
+
 ## Before deploying
 
 In `env/values-kub-ent-<env>.yaml`, set `config.gcsStateBucket` (the only remaining placeholder —
