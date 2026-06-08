@@ -89,6 +89,27 @@ class FareZoneSyncServiceTest {
     }
 
     @Test
+    void publishes_when_baseline_path_differs_and_carries_previous_path_into_started() {
+        // The steady-state production case: a non-null baseline whose stored path differs from the
+        // current Entur path (a genuine version bump). Asserts the previous path is propagated.
+        String previousPath = "/all/v28/all-farezones.xml";
+        when(enturClient.currentExportPath()).thenReturn(PATH); // /all/v29/...
+        when(stateStore.read()).thenReturn(state(previousPath));
+        when(enturClient.downloadExport()).thenReturn("<xml/>".getBytes());
+        givenValidation(true);
+
+        SyncOutcome outcome = service.run(options(false, false));
+
+        assertThat(outcome).isEqualTo(SyncOutcome.PUBLISHED);
+        ArgumentCaptor<SlackNotifier.Started> started = ArgumentCaptor.forClass(SlackNotifier.Started.class);
+        verify(slack).started(started.capture());
+        assertThat(started.getValue().newExportPath()).isEqualTo(PATH);
+        assertThat(started.getValue().previousExportPath()).isEqualTo(previousPath);
+        verify(publisher).publish(any(byte[].class));
+        verify(stateStore).write(any());
+    }
+
+    @Test
     void force_publishes_even_when_path_unchanged() {
         when(enturClient.currentExportPath()).thenReturn(PATH);
         when(stateStore.read()).thenReturn(state(PATH)); // same path

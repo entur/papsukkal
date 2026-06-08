@@ -13,6 +13,7 @@ import org.rutebanken.helper.slack.SlackPostService;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -82,6 +83,25 @@ class WebhookSlackNotifierTest {
                 .contains("97.5% below baseline 485")
                 .contains("State NOT advanced")
                 .contains("BYPASSED");
+    }
+
+    @Test
+    void publish_returning_false_is_swallowed_and_never_fails_the_sync() {
+        when(slack.publish(anyString())).thenReturn(false);
+
+        assertThatCode(() -> enabledNotifier()
+                .success(new Success(SyncTrigger.SCHEDULED, "/v29/farezones.xml", 1000, 1)))
+                .doesNotThrowAnyException();
+        verify(slack).publish(anyString());
+    }
+
+    @Test
+    void publish_throwing_is_swallowed_and_never_fails_the_sync() {
+        when(slack.publish(anyString())).thenThrow(new RuntimeException("slack down"));
+
+        assertThatCode(() -> enabledNotifier()
+                .failure(new Failure(SyncTrigger.SCHEDULED, "/v29/farezones.xml", "boom", false)))
+                .doesNotThrowAnyException();
     }
 
     @Test

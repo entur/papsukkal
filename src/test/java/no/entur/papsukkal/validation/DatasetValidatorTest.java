@@ -96,4 +96,32 @@ class DatasetValidatorTest {
         assertThat(result.passed()).isFalse();
         assertThat(result.failures()).anyMatch(f -> f.contains("failed to parse"));
     }
+
+    @Test
+    void passes_at_exactly_the_shrink_threshold() {
+        // 10 zones now vs baseline 20 at maxShrinkPct=50 → minAllowed = 20 * 0.5 = 10.0, current == 10.
+        // The boundary is inclusive (current >= minAllowed). Pins the `>=` vs `>` comparison.
+        ValidationResult result = validatorWith(5, 1, 50.0).validate(fixture("valid-farezones.xml"), baseline(20, 2));
+
+        assertThat(result.passed()).isTrue();
+    }
+
+    @Test
+    void fails_just_beyond_the_shrink_threshold() {
+        // 10 vs 20 at maxShrinkPct=49 → minAllowed = 20 * 0.51 = 10.2, current 10 < 10.2 → fail.
+        ValidationResult result = validatorWith(5, 1, 49.0).validate(fixture("valid-farezones.xml"), baseline(20, 2));
+
+        assertThat(result.passed()).isFalse();
+        assertThat(result.failures()).anyMatch(f -> f.contains("FareZone count 10"));
+    }
+
+    @Test
+    void accumulates_both_floor_and_shrink_failures() {
+        // Floor 400 (Tier 1) AND a huge drop vs baseline 485 (Tier 2) both fire into the same list.
+        ValidationResult result = validatorWith(400, 1, 10.0).validate(fixture("valid-farezones.xml"), baseline(485, 2));
+
+        assertThat(result.passed()).isFalse();
+        assertThat(result.failures()).anyMatch(f -> f.contains("below floor 400"));
+        assertThat(result.failures()).anyMatch(f -> f.contains("below baseline 485"));
+    }
 }
