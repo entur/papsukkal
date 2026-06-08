@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,7 +70,14 @@ class EnturFareZoneApiClientTest {
     }
 
     private EnturFareZoneApiClient client() {
-        return new EnturFareZoneApiClient(new EnturProperties(baseUrl + "/fare-zones", "test-client", null));
+        // The stub redirects to localhost, so allow that host instead of the GCS default.
+        return new EnturFareZoneApiClient(
+                new EnturProperties(baseUrl + "/fare-zones", "test-client", null, List.of("localhost")));
+    }
+
+    private EnturFareZoneApiClient clientAllowingOnly(String host) {
+        return new EnturFareZoneApiClient(
+                new EnturProperties(baseUrl + "/fare-zones", "test-client", null, List.of(host)));
     }
 
     @Test
@@ -88,5 +96,13 @@ class EnturFareZoneApiClientTest {
         assertThatThrownBy(() -> client().currentExportPath())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("redirect");
+    }
+
+    @Test
+    void rejects_redirect_to_a_host_not_on_the_allowlist() {
+        // Stub redirects to localhost, but only storage.googleapis.com is allowed → reject before download.
+        assertThatThrownBy(() -> clientAllowingOnly("storage.googleapis.com").downloadExport())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not in the allowed download hosts");
     }
 }

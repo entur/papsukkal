@@ -105,6 +105,17 @@ public class EnturFareZoneApiClient implements FareZoneApiClient {
                     "Expected a 3xx redirect with a Location header from Entur, got " + status
                             + (location == null ? " and no Location" : ""));
         }
+        // SSRF guard: only follow the redirect to an expected host (GCS signed URLs are https to
+        // storage.googleapis.com). Prevents a compromised/misconfigured Entur from steering the
+        // download at an arbitrary or internal host.
+        String host = location.getHost();
+        boolean allowed = host != null
+                && props.downloadAllowedHosts().stream().anyMatch(h -> h.equalsIgnoreCase(host));
+        if (!allowed) {
+            throw new IllegalStateException(
+                    "Entur redirect host '" + host + "' is not in the allowed download hosts "
+                            + props.downloadAllowedHosts());
+        }
         return location;
     }
 }

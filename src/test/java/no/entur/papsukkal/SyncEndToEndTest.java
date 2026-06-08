@@ -99,7 +99,7 @@ class SyncEndToEndTest {
                 new ValidationProperties(new Floor(5), new Floor(1), 10.0));
 
         EnturFareZoneApiClient enturClient = new EnturFareZoneApiClient(
-                new EnturProperties(enturBaseUrl + "/fare-zones", "test-client", null));
+                new EnturProperties(enturBaseUrl + "/fare-zones", "test-client", null, List.of("localhost")));
 
         TiamatNetexPublisher publisher = new TiamatNetexPublisher(
                 new TiamatProperties(tiamatUrl, "MERGE", new OAuth("tiamat", ""),

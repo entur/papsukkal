@@ -120,7 +120,7 @@ The `v28` version segment (and the validity-window segment) change exactly when 
 2. Strip the query string to get the **export path** (everything before `?`)
 3. Compare to the path stored in GCP Cloud Storage from the previous sync
 4. If paths match → data has not changed → skip publishing (no body download needed)
-5. If paths differ (or no previous state exists) → follow the URL to download the NeTEx XML body, then publish the full dataset to Tiamat
+5. If paths differ (or no previous state exists) → follow the URL to download the NeTEx XML body, then publish the full dataset to Tiamat. The redirect target host is checked against an allowlist (default `storage.googleapis.com`, configurable via `papsukkal.entur.download-allowed-hosts`) before the body is fetched — an SSRF guard so a compromised/misconfigured Entur cannot steer the download at an arbitrary or internal host
 6. After a successful publish, write the new export path back to GCP Cloud Storage
 
 This makes change detection cheap: an unchanged dataset is detected from the redirect alone, without ever downloading the (multi-MB) NeTEx body.
