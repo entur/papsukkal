@@ -46,12 +46,3 @@ variable "versioning" {
   description = "Enable object versioning on the bucket"
   default     = false
 }
-
-variable "service_account" {
-  description = "IAM member granted access to the state bucket (the Workload Identity service account), e.g. serviceAccount:application@<project>.iam.gserviceaccount.com"
-}
-
-variable "service_account_bucket_role" {
-  description = "Role granted to the service account on the state bucket"
-  default     = "roles/storage.objectAdmin"
-}

@@ -1,6 +1,8 @@
 # Papsukkal infrastructure: the GCS bucket that holds the sync-state file
-# (sync-state/last-sync.json) and the IAM binding granting the CronJob's
-# Workload Identity service account read/write access to it.
+# (sync-state/last-sync.json).
+#
+# Bucket access for the CronJob's Workload Identity service account (`application`) is granted by
+# the infrastructure provisioner, not here — so this config does not manage a bucket IAM binding.
 
 resource "google_storage_bucket" "state_bucket" {
   name                        = "${var.bucket_instance_prefix}-${var.bucket_instance_suffix}"
@@ -20,11 +22,4 @@ resource "google_storage_bucket_object" "state_folder" {
   name    = "sync-state/"
   content = "Not really a directory, but it's empty."
   bucket  = google_storage_bucket.state_bucket.name
-}
-
-# Grant the application service account (Workload Identity) object read/write on the state bucket.
-resource "google_storage_bucket_iam_member" "state_bucket_iam_member" {
-  bucket = google_storage_bucket.state_bucket.name
-  role   = var.service_account_bucket_role
-  member = var.service_account
 }

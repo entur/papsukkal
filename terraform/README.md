@@ -1,8 +1,10 @@
 # Terraform — Papsukkal infrastructure
 
-Provisions the GCS bucket that holds the sync-state file (`sync-state/last-sync.json`) and grants
-the CronJob's Workload Identity service account (`application`) read/write on it. State is stored
-in the `ent-gcs-tfa-papsukkal` GCS backend, one workspace per environment.
+Provisions the GCS bucket that holds the sync-state file (`sync-state/last-sync.json`). State is
+stored in the `ent-gcs-tfa-papsukkal` GCS backend, one workspace per environment.
+
+Bucket **access** for the CronJob's Workload Identity service account (`application`) is granted by
+the infrastructure provisioner — this config does **not** manage a bucket IAM binding.
 
 | Env | Project | Bucket |
 |---|---|---|
@@ -21,7 +23,3 @@ terraform workspace select kub-ent-dev   # or kub-ent-tst / kub-ent-prd
 terraform plan  -var-file=env/dev.tfvars
 terraform apply -var-file=env/dev.tfvars
 ```
-
-> **Note:** `service_account` in each `env/*.tfvars` assumes the Workload-Identity-bound GCP service
-> account is `application@<project>.iam.gserviceaccount.com`. Adjust if the infrastructure
-> provisioner uses a different name.
