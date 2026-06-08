@@ -29,6 +29,9 @@ class TiamatNetexPublisherTest {
     private String baseUrl;
     private final AtomicInteger requests = new AtomicInteger();
     private volatile int responseStatus = 200;
+    /** The first {@code transientCount} attempts return {@code transientStatus}; the rest return {@code responseStatus}. */
+    private volatile int transientStatus = 0;
+    private volatile int transientCount = 0;
     private volatile String lastAuth;
     private volatile String lastContentType;
     private volatile String lastQuery;
@@ -50,12 +53,13 @@ class TiamatNetexPublisherTest {
     }
 
     private void handle(HttpExchange exchange) throws IOException {
-        requests.incrementAndGet();
+        int attempt = requests.incrementAndGet();
         lastAuth = exchange.getRequestHeaders().getFirst("Authorization");
         lastContentType = exchange.getRequestHeaders().getFirst("Content-Type");
         lastQuery = exchange.getRequestURI().getRawQuery();
         exchange.getRequestBody().readAllBytes();
-        exchange.sendResponseHeaders(responseStatus, -1);
+        int status = (attempt <= transientCount) ? transientStatus : responseStatus;
+        exchange.sendResponseHeaders(status, -1);
         exchange.close();
     }
 
@@ -107,6 +111,30 @@ class TiamatNetexPublisherTest {
         assertThatThrownBy(() -> publisher("MERGE").publish(NETEX))
                 .isInstanceOf(RuntimeException.class);
         // maxRetries=2 => 3 attempts total
+        assertThat(requests.get()).isEqualTo(3);
+    }
+
+    @Test
+    void retries_on_429_then_succeeds() {
+        // 429 arrives as an HttpClientErrorException (a 4xx subtype) but must be retried — the
+        // happy retry-then-succeed path the predicate exists for.
+        transientStatus = 429;
+        transientCount = 2; // first two attempts 429, third attempt 200
+        responseStatus = 200;
+
+        publisher("MERGE").publish(NETEX); // must not throw
+
+        assertThat(requests.get()).isEqualTo(3);
+        assertThat(lastAuth).isEqualTo("Bearer test-token");
+    }
+
+    @Test
+    void retries_then_fails_when_429_never_clears() {
+        responseStatus = 429;
+
+        assertThatThrownBy(() -> publisher("MERGE").publish(NETEX))
+                .isInstanceOf(RuntimeException.class);
+        // 429 is retried (unlike fail-fast 4xx) => 3 attempts total, distinguishing it from a 400
         assertThat(requests.get()).isEqualTo(3);
     }
 }
