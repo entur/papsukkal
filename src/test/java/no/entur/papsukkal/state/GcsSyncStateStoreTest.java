@@ -22,9 +22,9 @@ class GcsSyncStateStoreTest {
     private static final String OBJECT = "sync-state/last-sync.json";
 
     private final BlobStoreRepository blobStore = mock(BlobStoreRepository.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper(); // for the round-trip assertions only
     private final GcsSyncStateStore store =
-            new GcsSyncStateStore(blobStore, objectMapper, new GcsProperties("proj", "bucket", OBJECT));
+            new GcsSyncStateStore(blobStore, new GcsProperties("proj", "bucket", OBJECT));
 
     @Test
     void read_returns_null_when_object_absent() {

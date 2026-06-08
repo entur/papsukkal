@@ -18,20 +18,23 @@ import java.io.UncheckedIOException;
  * <p>Reads/writes {@code sync-state/last-sync.json}. A missing object means first run ({@code read()}
  * returns {@code null}); {@code write()} is invoked only after a successful publish, so the stored
  * state is always last-known-good. The object is small, so the whole document is read/written at once.
+ *
+ * <p>Uses its own {@link ObjectMapper} for this one small record rather than injecting one — Spring
+ * Boot 4 auto-configures a Jackson 3 ({@code tools.jackson}) mapper, so there is no Jackson 2
+ * {@code ObjectMapper} bean to wire here.
  */
 @Component
 public class GcsSyncStateStore implements SyncStateStore {
 
     private static final Logger log = LoggerFactory.getLogger(GcsSyncStateStore.class);
     private static final String CONTENT_TYPE = "application/json";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final BlobStoreRepository blobStore;
-    private final ObjectMapper objectMapper;
     private final String objectName;
 
-    public GcsSyncStateStore(BlobStoreRepository blobStore, ObjectMapper objectMapper, GcsProperties props) {
+    public GcsSyncStateStore(BlobStoreRepository blobStore, GcsProperties props) {
         this.blobStore = blobStore;
-        this.objectMapper = objectMapper;
         this.objectName = props.objectName();
     }
 
@@ -45,7 +48,7 @@ public class GcsSyncStateStore implements SyncStateStore {
             if (in == null) {
                 return null;
             }
-            SyncState state = objectMapper.readValue(in, SyncState.class);
+            SyncState state = OBJECT_MAPPER.readValue(in, SyncState.class);
             log.debug("Loaded sync state: {}", state);
             return state;
         } catch (IOException e) {
@@ -56,7 +59,7 @@ public class GcsSyncStateStore implements SyncStateStore {
     @Override
     public void write(SyncState state) {
         try {
-            byte[] json = objectMapper.writeValueAsBytes(state);
+            byte[] json = OBJECT_MAPPER.writeValueAsBytes(state);
             long generation = blobStore.uploadBlob(
                     objectName, new ByteArrayInputStream(json), CONTENT_TYPE);
             log.info("Wrote sync state to {} ({} bytes, generation {})", objectName, json.length, generation);

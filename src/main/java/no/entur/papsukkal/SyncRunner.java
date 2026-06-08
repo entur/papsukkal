@@ -6,6 +6,7 @@ import no.entur.papsukkal.sync.SyncOutcome;
 import no.entur.papsukkal.sync.SyncTrigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.ExitCodeGenerator;
@@ -29,6 +30,7 @@ public class SyncRunner implements ApplicationRunner, ExitCodeGenerator {
     private final UnaryOperator<String> env;
     private int exitCode = 0;
 
+    @Autowired
     public SyncRunner(FareZoneSyncService syncService) {
         this(syncService, System::getenv);
     }

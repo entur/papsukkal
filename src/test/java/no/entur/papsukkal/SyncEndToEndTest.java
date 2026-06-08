@@ -107,7 +107,7 @@ class SyncEndToEndTest {
                 () -> "e2e-token");
 
         GcsSyncStateStore stateStore = new GcsSyncStateStore(
-                inMemoryBlobStore(), new ObjectMapper(), new GcsProperties("proj", "bucket", STATE_OBJECT));
+                inMemoryBlobStore(), new GcsProperties("proj", "bucket", STATE_OBJECT));
 
         slack = new RecordingSlackNotifier();
         return new FareZoneSyncService(enturClient, validator, publisher, stateStore, slack);
