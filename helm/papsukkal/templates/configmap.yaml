@@ -17,4 +17,4 @@ data:
     papsukkal.tiamat.import-type={{ .Values.config.tiamatImportType }}
     papsukkal.tiamat.oauth.audience={{ .Values.config.oauthAudience }}
     spring.security.oauth2.client.provider.tiamat.token-uri={{ .Values.config.oauthTokenUri }}
-    logging.structured.format.console=gcp
+    logging.structured.format.console=no.entur.papsukkal.logging.GcpStructuredLogFormatter

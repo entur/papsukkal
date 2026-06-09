@@ -33,8 +33,10 @@ Non-secret, per-environment config (`config.*` in the env values) is rendered in
 (`application.properties`), mounted at `/etc/application-config`, and overlaid on the baked
 `application.yml` via `-Dspring.config.additional-location` (set in `JDK_JAVA_OPTIONS`). Structural
 defaults stay in the jar's `application.yml`; secrets arrive as env vars from the External Secrets
-(`envFrom`). This also sets `logging.structured.format.console=gcp` so deployed logs are
-Google-Cloud-Logging structured JSON (local/test stay human-readable).
+(`envFrom`). This also points `logging.structured.format.console` at the custom
+`no.entur.papsukkal.logging.GcpStructuredLogFormatter` (named by fully-qualified class — Boot 4 has
+no built-in `gcp` format, only `ecs`/`gelf`/`logstash`) so deployed logs are Google-Cloud-Logging
+structured JSON (local/test stay human-readable).
 
 ## Secrets
 
