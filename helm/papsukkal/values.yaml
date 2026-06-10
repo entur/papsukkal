@@ -21,7 +21,7 @@ resources:
   memory: "512Mi"  # limit always equals request
 
 cron:
-  schedule: "0 3 * * *"
+  schedule: "0 1 * * *"
   timeZone: "Europe/Oslo"
   concurrencyPolicy: Forbid
   backoffLimit: 0
