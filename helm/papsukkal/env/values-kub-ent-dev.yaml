@@ -7,3 +7,4 @@ config:
   tiamatImportType: ""
   oauthTokenUri: https://internal.dev.entur.org/oauth/token
   oauthAudience: https://api.dev.entur.io
+  forceResync: "true"
