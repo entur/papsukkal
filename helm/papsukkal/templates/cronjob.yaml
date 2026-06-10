@@ -64,7 +64,7 @@ spec:
                     -Dspring.config.additional-location=file:/etc/application-config/application.properties
                 # Force a full resync AND override the validation gateway
                 - name: FORCE
-                  value: {{ .Values.config.forceResync | default "false" }}
+                  value: {{ .Values.config.forceResync | default "false" | quote }}
               envFrom:
                 # SLACK_URL + the SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_TIAMAT_* creds,
                 # synced from the namespace SecretStore by the ExternalSecrets (see external-secret*.yaml).
