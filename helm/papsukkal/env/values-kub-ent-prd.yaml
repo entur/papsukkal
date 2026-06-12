@@ -7,3 +7,4 @@ config:
   tiamatImportType: ""
   oauthTokenUri: https://internal.entur.org/oauth/token
   oauthAudience: https://api.entur.io
+  enturFareZoneUrl: https://api.entur.io/distance/netex/fare-zones

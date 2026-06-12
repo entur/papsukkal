@@ -40,6 +40,7 @@ config:
   tiamatImportType: ""
   oauthTokenUri: ""
   oauthAudience: ""
+  enturFareZoneUrl: ""
 
 # Credentials synced from the namespace SecretStore (Google Secret Manager) via External Secrets.
 # Generic entries (secretKey == remote key) — consumed via envFrom.

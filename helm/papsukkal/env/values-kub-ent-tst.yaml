@@ -8,3 +8,4 @@ config:
   oauthTokenUri: https://internal.staging.entur.org/oauth/token
   oauthAudience: https://api.staging.entur.io
   forceResync: "true"
+  enturFareZoneUrl: https://api.staging.entur.io/distance/netex/fare-zones

@@ -8,3 +8,4 @@ config:
   oauthTokenUri: https://internal.dev.entur.org/oauth/token
   oauthAudience: https://api.dev.entur.io
   forceResync: "true"
+  enturFareZoneUrl: https://api.dev.entur.io/distance/netex/fare-zones

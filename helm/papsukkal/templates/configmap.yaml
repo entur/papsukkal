@@ -11,6 +11,7 @@ data:
   # NOT here — they arrive as env vars from the External Secrets (envFrom).
   application.properties: |-
     papsukkal.entur.client-name={{ .Values.config.enturClientName }}
+    papsukkal.entur.url={{ .Values.config.enturFareZoneUrl }}
     papsukkal.gcs.project-id={{ .Values.config.gcsProjectId }}
     papsukkal.gcs.bucket={{ .Values.config.gcsStateBucket }}
     papsukkal.tiamat.url={{ .Values.config.tiamatImportUrl }}
