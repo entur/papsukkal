@@ -3,6 +3,7 @@ package no.entur.papsukkal.entur;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import no.entur.papsukkal.config.EnturProperties;
+import no.entur.papsukkal.config.RetryProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,9 +30,16 @@ class EnturFareZoneApiClientTest {
     private static final byte[] NETEX_BODY =
             "<PublicationDelivery>ok</PublicationDelivery>".getBytes(UTF_8);
 
+    /** Fast retry timings so the transient-5xx test doesn't actually back off for seconds. */
+    private static final RetryProperties FAST_RETRY =
+            new RetryProperties(2, Duration.ofMillis(1), 1.0, Duration.ofMillis(2), Duration.ZERO);
+
     private HttpServer server;
     private String baseUrl;
     private volatile boolean sendRedirect = true;
+    /** Number of leading {@code /fare-zones} requests answered with a transient 500 before the redirect. */
+    private volatile int transientFailures = 0;
+    private final AtomicInteger fareZoneRequests = new AtomicInteger();
 
     @BeforeEach
     void startServer() throws IOException {
@@ -48,7 +58,9 @@ class EnturFareZoneApiClientTest {
         String path = exchange.getRequestURI().getPath();
         try {
             if (path.equals("/fare-zones")) {
-                if (sendRedirect) {
+                if (fareZoneRequests.incrementAndGet() <= transientFailures) {
+                    exchange.sendResponseHeaders(500, -1); // transient upstream blip → should be retried
+                } else if (sendRedirect) {
                     // Absolute signed-URL style Location with a regenerating query string.
                     exchange.getResponseHeaders().set("Location",
                             baseUrl + EXPORT_PATH + "?X-Goog-Signature=abc&X-Goog-Expires=900");
@@ -72,12 +84,12 @@ class EnturFareZoneApiClientTest {
     private EnturFareZoneApiClient client() {
         // The stub redirects to localhost, so allow that host instead of the GCS default.
         return new EnturFareZoneApiClient(
-                new EnturProperties(baseUrl + "/fare-zones", "test-client", null, List.of("localhost")));
+                new EnturProperties(baseUrl + "/fare-zones", "test-client", null, List.of("localhost"), FAST_RETRY));
     }
 
     private EnturFareZoneApiClient clientAllowingOnly(String host) {
         return new EnturFareZoneApiClient(
-                new EnturProperties(baseUrl + "/fare-zones", "test-client", null, List.of(host)));
+                new EnturProperties(baseUrl + "/fare-zones", "test-client", null, List.of(host), FAST_RETRY));
     }
 
     @Test
@@ -88,6 +100,23 @@ class EnturFareZoneApiClientTest {
     @Test
     void downloadExport_follows_redirect_and_returns_body() {
         assertThat(client().downloadExport()).isEqualTo(NETEX_BODY);
+    }
+
+    @Test
+    void currentExportPath_retries_transient_5xx_then_succeeds() {
+        transientFailures = 2; // first two requests 500, third redirects
+
+        assertThat(client().currentExportPath()).isEqualTo(EXPORT_PATH);
+        assertThat(fareZoneRequests.get()).isEqualTo(3); // 2 retried failures + 1 success
+    }
+
+    @Test
+    void currentExportPath_fails_after_retries_exhausted_on_persistent_5xx() {
+        transientFailures = 99; // never recovers
+
+        assertThatThrownBy(() -> client().currentExportPath())
+                .isInstanceOf(RuntimeException.class);
+        assertThat(fareZoneRequests.get()).isEqualTo(3); // maxRetries=2 => 3 attempts total
     }
 
     @Test
