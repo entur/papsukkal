@@ -1,4 +1,4 @@
-package no.entur.papsukkal.publish;
+package no.entur.papsukkal.retry;
 
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -7,8 +7,9 @@ import org.springframework.web.client.ResourceAccessException;
 import java.util.function.Predicate;
 
 /**
- * Classifies a publish failure as transient (worth retrying) vs fatal (fail fast), per
- * CLAUDE.md &gt; Error Handling, Retry &amp; Notifications.
+ * Classifies an HTTP failure as transient (worth retrying) vs fatal (fail fast), per
+ * CLAUDE.md &gt; Error Handling, Retry &amp; Notifications. Shared by the Entur fetch and the Tiamat
+ * publish so both treat an upstream blip identically.
  *
  * <p>Transient: HTTP {@code 5xx} ({@link HttpServerErrorException}), connection/read problems
  * ({@link ResourceAccessException}), and HTTP {@code 429}. Note {@code 429} arrives as

@@ -2,9 +2,9 @@ package no.entur.papsukkal.publish;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import no.entur.papsukkal.config.RetryProperties;
 import no.entur.papsukkal.config.TiamatProperties;
 import no.entur.papsukkal.config.TiamatProperties.OAuth;
-import no.entur.papsukkal.config.TiamatProperties.Retry;
 import org.entur.oauth2.TokenService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +69,7 @@ class TiamatNetexPublisherTest {
                 baseUrl,
                 importType,
                 new OAuth("tiamat", ""),
-                new Retry(2, Duration.ofMillis(1), 1.0, Duration.ofMillis(2), Duration.ZERO));
+                new RetryProperties(2, Duration.ofMillis(1), 1.0, Duration.ofMillis(2), Duration.ZERO));
         return new TiamatNetexPublisher(props, tokenService);
     }
 

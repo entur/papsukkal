@@ -5,9 +5,9 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import no.entur.papsukkal.config.EnturProperties;
 import no.entur.papsukkal.config.GcsProperties;
+import no.entur.papsukkal.config.RetryProperties;
 import no.entur.papsukkal.config.TiamatProperties;
 import no.entur.papsukkal.config.TiamatProperties.OAuth;
-import no.entur.papsukkal.config.TiamatProperties.Retry;
 import no.entur.papsukkal.config.ValidationProperties;
 import no.entur.papsukkal.config.ValidationProperties.Floor;
 import no.entur.papsukkal.entur.EnturFareZoneApiClient;
@@ -98,12 +98,14 @@ class SyncEndToEndTest {
                 // floors low enough for the 10-zone / 2-group fixture to pass
                 new ValidationProperties(new Floor(5), new Floor(1), 10.0));
 
+        // Fast retry timings so any transient blip in the test doesn't back off for seconds.
+        RetryProperties fastRetry = new RetryProperties(2, Duration.ofMillis(1), 1.0, Duration.ofMillis(2), Duration.ZERO);
+
         EnturFareZoneApiClient enturClient = new EnturFareZoneApiClient(
-                new EnturProperties(enturBaseUrl + "/fare-zones", "test-client", null, List.of("localhost")));
+                new EnturProperties(enturBaseUrl + "/fare-zones", "test-client", null, List.of("localhost"), fastRetry));
 
         TiamatNetexPublisher publisher = new TiamatNetexPublisher(
-                new TiamatProperties(tiamatUrl, "MERGE", new OAuth("tiamat", ""),
-                        new Retry(2, Duration.ofMillis(1), 1.0, Duration.ofMillis(2), Duration.ZERO)),
+                new TiamatProperties(tiamatUrl, "MERGE", new OAuth("tiamat", ""), fastRetry),
                 () -> "e2e-token");
 
         GcsSyncStateStore stateStore = new GcsSyncStateStore(

@@ -1,8 +1,10 @@
 package no.entur.papsukkal.entur;
 
 import no.entur.papsukkal.config.EnturProperties;
+import no.entur.papsukkal.retry.HttpRetry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -25,6 +27,11 @@ import java.time.Duration;
  *       separate client that carries none of the Entur headers (the signed URL is
  *       self-authenticating; nothing should leak to GCS).</li>
  * </ul>
+ *
+ * <p>The network calls are wrapped in a transient-retry {@link RetryTemplate} (same classification
+ * as the Tiamat publish), so an upstream Entur {@code 5xx}/{@code 429}/IO blip is retried rather
+ * than aborting the run on the first attempt; non-transient failures (a missing {@code Location},
+ * an off-allowlist redirect host) fail fast.
  */
 @Component
 public class EnturFareZoneApiClient implements FareZoneApiClient {
@@ -36,9 +43,12 @@ public class EnturFareZoneApiClient implements FareZoneApiClient {
     private final RestClient enturClient;
     /** Plain client for the absolute GCS signed URL — no Entur headers, follows redirects. */
     private final RestClient downloadClient;
+    /** Retries transient Entur/GCS failures (5xx / 429 / IO); fatal errors propagate. */
+    private final RetryTemplate retryTemplate;
 
     public EnturFareZoneApiClient(EnturProperties props) {
         this.props = props;
+        this.retryTemplate = HttpRetry.transientHttpErrors(props.retry());
 
         HttpClient noRedirect = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -75,10 +85,10 @@ public class EnturFareZoneApiClient implements FareZoneApiClient {
     @Override
     public byte[] downloadExport() {
         URI signedUrl = fetchExportLocation();
-        byte[] body = downloadClient.get()
+        byte[] body = HttpRetry.execute(retryTemplate, () -> downloadClient.get()
                 .uri(signedUrl)
                 .retrieve()
-                .body(byte[].class);
+                .body(byte[].class));
         if (body == null || body.length == 0) {
             throw new IllegalStateException("Empty NeTEx body from " + signedUrl.getRawPath());
         }
@@ -88,7 +98,9 @@ public class EnturFareZoneApiClient implements FareZoneApiClient {
 
     /** Fetches the export endpoint (redirects disabled) and returns the {@code Location} URL. */
     private URI fetchExportLocation() {
-        ResponseEntity<Void> response = enturClient.get()
+        // Retry only the network call; the redirect/SSRF validation below is deterministic and must
+        // fail fast (an off-allowlist host or missing Location won't get better on a retry).
+        ResponseEntity<Void> response = HttpRetry.execute(retryTemplate, () -> enturClient.get()
                 .uri(uri -> {
                     if (props.organisationId() != null) {
                         uri.queryParam("organisationId", props.organisationId());
@@ -96,7 +108,7 @@ public class EnturFareZoneApiClient implements FareZoneApiClient {
                     return uri.build();
                 })
                 .retrieve()
-                .toBodilessEntity();
+                .toBodilessEntity());
 
         HttpStatusCode status = response.getStatusCode();
         URI location = response.getHeaders().getLocation();
