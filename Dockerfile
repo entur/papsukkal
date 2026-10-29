@@ -4,7 +4,7 @@
 # Entur's Maven repository for the `superpom` parent. This image just packages the pre-built jar —
 # it does not build, so no Maven credentials are needed at image-build time.
 # Pinned by digest for reproducible builds; bump deliberately (e.g. via Renovate/Dependabot).
-FROM eclipse-temurin:25-jre@sha256:04262e8782d6b034ee5d7c1c5d4e8938fcf2063a76b4bfcd84e5d994d09c27bc
+FROM eclipse-temurin:25-jre@sha256:5cf92df78f6dba978777d5cffa3c856e583f86814fde82a6c3534ccdfd794f2f
 
 # JVM options (heap, file encoding, spring.config.additional-location) are set by the Helm chart
 # via JDK_JAVA_OPTIONS at deploy time.
