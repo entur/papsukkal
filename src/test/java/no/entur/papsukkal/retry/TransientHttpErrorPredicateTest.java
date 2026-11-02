@@ -1,4 +1,4 @@
-package no.entur.papsukkal.publish;
+package no.entur.papsukkal.retry;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;

@@ -53,6 +53,8 @@ class ConfigurationPropertiesBindingTest {
             assertThat(p.clientName()).isEqualTo("entur-papsukkal");
             assertThat(p.organisationId()).isNull();
             assertThat(p.downloadAllowedHosts()).containsExactly("storage.googleapis.com");
+            assertThat(p.retry().maxRetries()).isEqualTo(2); // shared RetryProperties defaults bind
+            assertThat(p.retry().delay()).hasSeconds(5);
         });
     }
 

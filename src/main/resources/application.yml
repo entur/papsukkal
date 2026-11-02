@@ -24,6 +24,12 @@ papsukkal:
     # ET-Client-Name header default; overridden per deployment.
     client-name: entur-papsukkal
     # organisation-id:   # optional filter; omit for the full ("all") export
+    retry:                # transient (5xx / 429 / IO) retry for the redirect fetch + body download
+      max-retries: 2      # 3 attempts total
+      delay: 5s
+      multiplier: 3.0
+      max-delay: 45s
+      jitter: 1s
   gcs:
     object-name: sync-state/last-sync.json
   slack:
