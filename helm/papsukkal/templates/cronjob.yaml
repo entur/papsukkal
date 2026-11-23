@@ -60,6 +60,7 @@ spec:
                 - name: JDK_JAVA_OPTIONS
                   value: >-
                     -XX:MaxRAMPercentage=75.0
+                    -XX:-UseBASE64Intrinsics
                     -Dfile.encoding=UTF-8
                     -Dspring.config.additional-location=file:/etc/application-config/application.properties
                 # Force a full resync AND override the validation gateway
